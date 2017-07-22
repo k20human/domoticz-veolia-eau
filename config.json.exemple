@@ -1,0 +1,6 @@
+{
+    "login": "your_login",
+    "password": "your_password",
+    "domoticz_server": "your_domoticz_server_url",
+    "domoticz_idx": "your_domoticz_idx"
+}

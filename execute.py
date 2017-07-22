@@ -8,21 +8,35 @@ source: tangix
 
 """
 
-import http.cookiejar, urllib
+import http.cookiejar
+import urllib
 import xlrd
+import json
+import os
+import sys
 from xlrd.sheet import ctype_text
 
+configurationFile = './config.json'
+
+# Check if configuration file exists
+if os.path.isfile(configurationFile):
+    # Import configuration file
+    with open(configurationFile) as data_file:
+        config = json.load(data_file)
+else:
+    sys.exit('Your configuration file doesn\'t exists')
+
 # domoticz server & port information
-domoticzserver = "192.168.10.28:8080"
+domoticzserver = config['domoticz_server']
 
 # domoticz IDX
-Idx = "domoticz_idx"
+Idx = config['domoticz_idx']
 
 # Veolia Login
-Vlogin = ""
+Vlogin = config['login']
 
 # Veolia password
-Vpassword = "your_password"
+Vpassword = config['password']
 
 
 # Logger
@@ -89,7 +103,7 @@ if argsweb:
     Logger('Deconnection du site Veolia Eau')
     url.call(urlDisconnect)
 
-    file = open('temp.xls', 'wb')
+    file = open('./temp.xls', 'wb')
     file.write(content)
     file.close()
 
@@ -104,3 +118,6 @@ if argsweb:
             urldom = 'http://' + domoticzserver + '/json.htm?type=command&param=udevice&idx=' + Idx + '&svalue=' + str(
                 volume) + ''
             url.call(urldom)
+
+    # Remove temp.xls file
+    os.remove('./temp.xls')
