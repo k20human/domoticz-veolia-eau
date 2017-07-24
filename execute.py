@@ -18,12 +18,19 @@ from xlrd.sheet import ctype_text
 
 configurationFile = './config.json'
 
+# Logger
+def Logger(pMessage):
+    file = open('veoliaconnect.log', 'a')
+    file.write("%s\n" % pMessage)
+    file.close()
+
 # Check if configuration file exists
 if os.path.isfile(configurationFile):
     # Import configuration file
     with open(configurationFile) as data_file:
         config = json.load(data_file)
 else:
+    Logger('Your configuration file doesn\'t exists')
     sys.exit('Your configuration file doesn\'t exists')
 
 # domoticz server & port information
@@ -37,14 +44,6 @@ Vlogin = config['login']
 
 # Veolia password
 Vpassword = config['password']
-
-
-# Logger
-def Logger(pMessage):
-    file = open('veoliaconnect.log', 'a')
-    file.write("%s\n" % pMessage)
-    file.close()
-
 
 class URL:
     def __init__(self):
