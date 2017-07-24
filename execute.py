@@ -8,6 +8,13 @@ source: tangix
 
 """
 
+#
+# Copyright (C) 2017 Kévin Mathieu
+#
+# This software may be modified and distributed under the terms
+# of the MIT license.  See the LICENSE file for details.
+#
+
 import http.cookiejar
 import urllib
 import xlrd
