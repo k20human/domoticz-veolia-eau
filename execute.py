@@ -55,7 +55,7 @@ else:
 domoticzserver = config['domoticz_server']
 
 # domoticz IDX
-Idx = config['domoticz_idx']
+domoticzIdx = config['domoticz_idx']
 
 # Veolia Login
 Vlogin = config['login']
@@ -70,11 +70,13 @@ class URL:
         self.urlOpener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
 
     def call(self, url, params=None, referer=None, output=None):
-        logger.info('Calling url')
+        logger.info('Calling url: %s', url)
         data = None if params == None else urllib.parse.urlencode(params).encode("utf-8")
         request = urllib.request.Request(url, data)
+
         if referer is not None:
             request.add_header('Referer', referer)
+
         response = self.urlOpener.open(request)
         logger.info(" -> %s" % response.getcode())
         if output is not None:
@@ -132,7 +134,8 @@ if argsweb:
         cell_type_str = ctype_text.get(cell_obj.ctype, 'unknown type')
         if idx == 1:
             volume = int(cell_obj.value)
-            urldom = 'http://' + domoticzserver + '/json.htm?type=command&param=udevice&idx=' + Idx + '&svalue=' + str(
+            logger.info('Volume: %s', str(volume))
+            urldom = 'http://' + domoticzserver + '/json.htm?type=command&param=udevice&idx=' + domoticzIdx + '&svalue=' + str(
                 volume) + ''
             url.call(urldom)
 
