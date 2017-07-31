@@ -22,14 +22,25 @@ import json
 import os
 import sys
 from xlrd.sheet import ctype_text
+import logging
+from logging.handlers import RotatingFileHandler
 
 configurationFile = './config.json'
 
-# Logger
-def Logger(pMessage):
-    file = open('veoliaconnect.log', 'a')
-    file.write("%s\n" % pMessage)
-    file.close()
+# Configure logs
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
+
+file_handler = RotatingFileHandler('veolia.log', 'a', 1000000, 1)
+file_handler.setLevel(logging.INFO)
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
+steam_handler = logging.StreamHandler()
+steam_handler.setLevel(logging.INFO)
+steam_handler.setFormatter(formatter)
+logger.addHandler(steam_handler)
 
 # Check if configuration file exists
 if os.path.isfile(configurationFile):
@@ -37,7 +48,7 @@ if os.path.isfile(configurationFile):
     with open(configurationFile) as data_file:
         config = json.load(data_file)
 else:
-    Logger('Your configuration file doesn\'t exists')
+    logger.error('Your configuration file doesn\'t exists')
     sys.exit('Your configuration file doesn\'t exists')
 
 # domoticz server & port information
@@ -59,13 +70,13 @@ class URL:
         self.urlOpener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
 
     def call(self, url, params=None, referer=None, output=None):
-        Logger('Calling url')
+        logger.info('Calling url')
         data = None if params == None else urllib.parse.urlencode(params).encode("utf-8")
         request = urllib.request.Request(url, data)
         if referer is not None:
             request.add_header('Referer', referer)
         response = self.urlOpener.open(request)
-        Logger(" -> %s" % response.getcode())
+        logger.info(" -> %s" % response.getcode())
         if output is not None:
             file = open(output, 'w')
             file.write(response.read())
@@ -85,7 +96,7 @@ if argsweb:
     urlDisconnect = 'https://www.service-client.veoliaeau.fr/logout'
 
     # Connect to Veolia website
-    Logger('Connection au site Veolia Eau')
+    logger.info('Connection au site Veolia Eau')
     params = {'veolia_username': Vlogin,
               'veolia_password': Vpassword,
               'login': 'OK'}
@@ -93,20 +104,20 @@ if argsweb:
     url.call(urlConnect, params, referer)
 
     # Page 'votre consomation'
-    Logger('Page de consommation')
+    logger.info('Page de consommation')
     url.call(urlConso1)
 
     # Page 'votre consomation : historique'
-    Logger('Page de consommation : historique')
+    logger.info('Page de consommation : historique')
     url.call(urlConso2)
 
     # Download XLS file
-    Logger('Telechargement du fichier')
+    logger.info('Telechargement du fichier')
     response = url.call(urlXls)
     content = response.read()
 
     # logout
-    Logger('Deconnection du site Veolia Eau')
+    logger.info('Deconnection du site Veolia Eau')
     url.call(urlDisconnect)
 
     file = open('./temp.xls', 'wb')
