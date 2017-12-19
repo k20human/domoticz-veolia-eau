@@ -100,9 +100,9 @@ if argsweb:
     urlDisconnect = 'https://www.service-client.veoliaeau.fr/cms/logout'
 
     # Grab connection token
-    responseHome = url.call(urlHome)
+    responseHome = url.call(urlHome).read().decode("utf-8")
     regex = re.compile('"token" value="(.*)"', re.I)
-    tokenMatch = regex.search(responseHome.read())
+    tokenMatch = regex.search(responseHome)
 
     if not tokenMatch:
         logger.error('Impossible de récupérer le token de connexion')
