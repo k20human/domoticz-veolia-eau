@@ -21,6 +21,7 @@ import xlrd
 import json
 import os
 import sys
+import re
 from xlrd.sheet import ctype_text
 import logging
 from logging.handlers import RotatingFileHandler
@@ -91,19 +92,29 @@ argsweb = 'ok'
 if argsweb:
     url = URL()
 
+    urlHome = 'https://www.service-client.veoliaeau.fr/home.html'
     urlConnect = 'https://www.service-client.veoliaeau.fr/home.loginAction.do#inside-space'
     urlConso1 = 'https://www.service-client.veoliaeau.fr/home/espace-client/votre-consommation.html'
     urlConso2 = 'https://www.service-client.veoliaeau.fr/home/espace-client/votre-consommation.html?vueConso=historique'
     urlXls = 'https://www.service-client.veoliaeau.fr/home/espace-client/votre-consommation.exportConsommationData.do?vueConso=historique'
-    urlDisconnect = 'https://www.service-client.veoliaeau.fr/logout'
+    urlDisconnect = 'https://www.service-client.veoliaeau.fr/cms/logout'
+
+    # Grab connection token
+    responseHome = url.call(urlHome).read().decode("utf-8")
+    regex = re.compile('"token" value="(.*)"', re.I)
+    tokenMatch = regex.search(responseHome)
+
+    if not tokenMatch:
+        logger.error('Impossible de récupérer le token de connexion')
 
     # Connect to Veolia website
     logger.info('Connection au site Veolia Eau')
     params = {'veolia_username': Vlogin,
               'veolia_password': Vpassword,
+              'token': tokenMatch.group(1),
               'login': 'OK'}
-    referer = 'https://www.service-client.veoliaeau.fr/home.html'
-    url.call(urlConnect, params, referer)
+
+    url.call(urlConnect, params, urlHome)
 
     # Page 'votre consomation'
     logger.info('Page de consommation')
