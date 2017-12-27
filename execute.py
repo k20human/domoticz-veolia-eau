@@ -22,6 +22,7 @@ import json
 import os
 import sys
 import re
+import base64
 from xlrd.sheet import ctype_text
 import logging
 from logging.handlers import RotatingFileHandler
@@ -57,6 +58,12 @@ domoticzserver = config['domoticz_server']
 
 # domoticz IDX
 domoticzIdx = config['domoticz_idx']
+
+# domoticz user
+domoticzlogin = config['domoticz_login']
+
+# domoticz password
+domoticzpassword = config['domoticz_password']
 
 # Veolia Login
 Vlogin = config['login']
@@ -146,8 +153,14 @@ if argsweb:
         if idx == 1:
             volume = int(cell_obj.value)
             logger.info('Volume: %s', str(volume))
-            urldom = 'http://' + domoticzserver + '/json.htm?type=command&param=udevice&idx=' + domoticzIdx + '&svalue=' + str(
-                volume) + ''
+            if domoticzlogin:
+                b64domoticzlogin = base64.b64encode(domoticzlogin.encode())
+                b64domoticzpassword = base64.b64encode(domoticzpassword.encode())
+                urldom = 'http://' + domoticzserver + '/json.htm?username=' + b64domoticzlogin.decode()  + '&password=' + b64domoticzpassword.decode() + '&type=command&param=udevice&idx=' + domoticzIdx + '&svalue=' + str(
+                    volume) + ''
+            else:
+                urldom = 'http://' + domoticzserver + '/json.htm?type=command&param=udevice&idx=' + domoticzIdx + '&svalue=' + str(
+                    volume) + ''
             url.call(urldom)
 
     # Remove temp.xls file
