@@ -99,12 +99,12 @@ argsweb = 'ok'
 if argsweb:
     url = URL()
 
-    urlHome = 'https://www.service-client.veoliaeau.fr/home.html'
-    urlConnect = 'https://www.service-client.veoliaeau.fr/home.loginAction.do#inside-space'
-    urlConso1 = 'https://www.service-client.veoliaeau.fr/home/espace-client/votre-consommation.html'
-    urlConso2 = 'https://www.service-client.veoliaeau.fr/home/espace-client/votre-consommation.html?vueConso=historique'
-    urlXls = 'https://www.service-client.veoliaeau.fr/home/espace-client/votre-consommation.exportConsommationData.do?vueConso=historique'
-    urlDisconnect = 'https://www.service-client.veoliaeau.fr/cms/logout'
+    urlHome = 'https://www.service.eau.veolia.fr/home.html'
+    urlConnect = 'https://www.service.eau.veolia.fr/home.loginAction.do#inside-space'
+    urlConso1 = 'https://www.service.eau.veolia.fr/home/espace-client/votre-consommation.html'
+    urlConso2 = 'https://www.service.eau.veolia.fr/home/espace-client/votre-consommation.html?vueConso=historique'
+    urlXls = 'https://www.service.eau.veolia.fr/home/espace-client/votre-consommation.exportConsommationData.do?vueConso=historique'
+    urlDisconnect = 'https://www.service.eau.veolia.fr/cms/logout'
 
     # Grab connection token
     responseHome = url.call(urlHome).read().decode("utf-8")
