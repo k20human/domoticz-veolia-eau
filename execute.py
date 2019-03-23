@@ -9,21 +9,21 @@ source: tangix
 """
 
 #
-# Copyright (C) 2017 Kévin Mathieu
+# Copyright (C) 2019 Kévin Mathieu
 #
 # This software may be modified and distributed under the terms
 # of the MIT license.  See the LICENSE file for details.
 #
 
+from selenium import webdriver
 import http.cookiejar
 import urllib
-import xlrd
 import json
 import os
 import sys
-import re
+import time
 import base64
-from xlrd.sheet import ctype_text
+import csv
 import logging
 from logging.handlers import RotatingFileHandler
 
@@ -71,6 +71,9 @@ Vlogin = config['login']
 # Veolia password
 Vpassword = config['password']
 
+downloadPath = '/tmp'
+downloadFile = downloadPath + '/historique_jours_litres.csv'
+
 class URL:
     def __init__(self):
         # On active le support des cookies pour urllib
@@ -99,60 +102,55 @@ argsweb = 'ok'
 if argsweb:
     url = URL()
 
-    urlHome = 'https://www.service.eau.veolia.fr/home.html'
-    urlConnect = 'https://www.service.eau.veolia.fr/home.loginAction.do#inside-space'
-    urlConso1 = 'https://www.service.eau.veolia.fr/home/espace-client/votre-consommation.html'
-    urlConso2 = 'https://www.service.eau.veolia.fr/home/espace-client/votre-consommation.html?vueConso=historique'
-    urlXls = 'https://www.service.eau.veolia.fr/home/espace-client/votre-consommation.exportConsommationData.do?vueConso=historique'
-    urlDisconnect = 'https://www.service.eau.veolia.fr/cms/logout'
+    urlHome = 'https://espace-client.vedif.eau.veolia.fr/s/login/'
+    urlConso = 'https://espace-client.vedif.eau.veolia.fr/s/historique'
 
-    # Grab connection token
-    responseHome = url.call(urlHome).read().decode("utf-8")
-    regex = re.compile('"token" value="(.*)"', re.I)
-    tokenMatch = regex.search(responseHome)
+    profile = webdriver.FirefoxProfile()
+    options = webdriver.FirefoxOptions()
+    options.headless = True
+    profile.set_preference('browser.download.folderList', 2)  # custom location
+    profile.set_preference('browser.download.manager.showWhenStarting', False)
+    profile.set_preference('browser.download.dir', downloadPath)
+    profile.set_preference('browser.helperApps.neverAsk.saveToDisk', 'text/csv')
 
-    if not tokenMatch:
-        logger.error('Impossible de récupérer le token de connexion')
+    browser = webdriver.Firefox(firefox_profile=profile, firefox_options=options)
+
+    browser.implicitly_wait(10)
 
     # Connect to Veolia website
-    logger.info('Connection au site Veolia Eau')
-    params = {'veolia_username': Vlogin,
-              'veolia_password': Vpassword,
-              'token': tokenMatch.group(1),
-              'login': 'OK'}
+    logger.info('Connexion au site Veolia Eau Ile de France')
 
-    url.call(urlConnect, params, urlHome)
+    browser.get(urlHome)
+
+    # Fill login form
+    idEmail = browser.find_element_by_id("input-4")
+    idPassword = browser.find_element_by_css_selector("input[type='password']")
+
+    idEmail.send_keys(Vlogin)
+    idPassword.send_keys(Vpassword)
+
+    loginButton = browser.find_element_by_class_name('submit-button')
+    loginButton.click()
+
+    time.sleep(5)
 
     # Page 'votre consomation'
     logger.info('Page de consommation')
-    url.call(urlConso1)
+    browser.get(urlConso)
+    time.sleep(5)
 
-    # Page 'votre consomation : historique'
-    logger.info('Page de consommation : historique')
-    url.call(urlConso2)
-
-    # Download XLS file
+    # Download file
     logger.info('Telechargement du fichier')
-    response = url.call(urlXls)
-    content = response.read()
+    downloadFileButton = browser.find_element_by_class_name("slds-button")
+    downloadFileButton.click()
 
-    # logout
-    logger.info('Deconnection du site Veolia Eau')
-    url.call(urlDisconnect)
+    browser.close()
 
-    file = open('./temp.xls', 'wb')
-    file.write(content)
-    file.close()
-
-    book = xlrd.open_workbook('temp.xls', encoding_override="cp1252")
-    sheet = book.sheet_by_index(0)
-    last_rows = sheet.nrows
-    row = sheet.row(last_rows - 1)
-    for idx, cell_obj in enumerate(row):
-        cell_type_str = ctype_text.get(cell_obj.ctype, 'unknown type')
-        if idx == 1:
-            volume = int(cell_obj.value)
+    with open(downloadFile, 'r') as f:
+        for row in reversed(list(csv.reader(f, delimiter=';'))):
+            volume = int(row[1])
             logger.info('Volume: %s', str(volume))
+
             if domoticzlogin:
                 b64domoticzlogin = base64.b64encode(domoticzlogin.encode())
                 b64domoticzpassword = base64.b64encode(domoticzpassword.encode())
@@ -163,5 +161,5 @@ if argsweb:
                     volume) + ''
             url.call(urldom)
 
-    # Remove temp.xls file
-    os.remove('./temp.xls')
+    # Remove file
+    os.remove(downloadFile)
