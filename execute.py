@@ -26,6 +26,8 @@ import base64
 import csv
 import logging
 from logging.handlers import RotatingFileHandler
+from pyvirtualdisplay import Display  
+from selenium.webdriver.chrome.options import Options
 
 configurationFile = './config.json'
 
@@ -71,8 +73,8 @@ Vlogin = config['login']
 # Veolia password
 Vpassword = config['password']
 
-downloadPath = '/tmp'
-downloadFile = downloadPath + '/historique_jours_litres.csv'
+downloadPath = '/home/pi/Downloads/'
+downloadFile = downloadPath + 'historique_jours_litres.csv'
 
 class URL:
     def __init__(self):
@@ -105,39 +107,54 @@ if argsweb:
     urlHome = 'https://espace-client.vedif.eau.veolia.fr/s/login/'
     urlConso = 'https://espace-client.vedif.eau.veolia.fr/s/historique'
 
-    profile = webdriver.FirefoxProfile()
-    options = webdriver.FirefoxOptions()
-    options.headless = True
-    profile.set_preference('browser.download.folderList', 2)  # custom location
-    profile.set_preference('browser.download.manager.showWhenStarting', False)
-    profile.set_preference('browser.download.dir', downloadPath)
-    profile.set_preference('browser.helperApps.neverAsk.saveToDisk', 'text/csv')
+    options = webdriver.ChromeOptions()
+    options.add_argument("-headless")
+    options.add_argument("-disable-gpu")
 
-    browser = webdriver.Firefox(firefox_profile=profile, firefox_options=options)
+    #start the virtual display      
+    display = Display(visible=0, size=(800, 600))   
+    display.start()
 
-    browser.implicitly_wait(10)
+    #profile = webdriver.FirefoxProfile()
+    #options = webdriver.FirefoxOptions()
+    #options.headless = True
+    #profile.set_preference('browser.download.folderList', 2)  # custom location
+    #profile.set_preference('browser.download.manager.showWhenStarting', False)
+    #profile.set_preference('browser.download.dir', downloadPath)
+    #profile.set_preference('browser.helperApps.neverAsk.saveToDisk', 'text/csv')
+    #browser = webdriver.Firefox(firefox_profile=profile, firefox_options=options, log_path='./geckodriver.log')
+
+    
+    #browser = webdriver.PhantomJS(executable_path='/home/pi/phantomJS/bin/phantomjs')
+
+    desired_caps = {'prefs': {'download': {'default_directory': downloadPath, "directory_upgrade": "true", "extensions_to_open": "text/csv"}}}
+
+    options.add_experimental_option("prefs",desired_caps)
+    browser = webdriver.Chrome(executable_path='/usr/lib/chromium-browser/chromedriver',chrome_options=options)
 
     # Connect to Veolia website
     logger.info('Connexion au site Veolia Eau Ile de France')
 
     browser.get(urlHome)
-
+    browser.implicitly_wait(10)
+    #browser.save_screenshot('screen.png') # save a screenshot to disk
+    
     # Fill login form
-    idEmail = browser.find_element_by_id("input-4")
-    idPassword = browser.find_element_by_css_selector("input[type='password']")
+    idEmail = browser.find_element_by_id('input-4')
+    idPassword = browser.find_element_by_css_selector('input[type="password"]')
 
     idEmail.send_keys(Vlogin)
+    time.sleep(5)
     idPassword.send_keys(Vpassword)
-
+    time.sleep(5)
     loginButton = browser.find_element_by_class_name('submit-button')
     loginButton.click()
-
     time.sleep(5)
 
     # Page 'votre consomation'
     logger.info('Page de consommation')
     browser.get(urlConso)
-    time.sleep(5)
+    time.sleep(15)
 
     # Download file
     logger.info('Telechargement du fichier')
@@ -146,9 +163,14 @@ if argsweb:
 
     browser.close()
 
+    display.stop()
+
+    logger.info('Fichier:' + downloadFile)
+
     with open(downloadFile, 'r') as f:
-        for row in reversed(list(csv.reader(f, delimiter=';'))):
-            volume = int(row[1])
+        #for row in reversed(list(csv.reader(f, delimiter=';'))):
+            row = list(csv.reader(f, delimiter=';'))[-1]
+            volume = int(row[2])
             logger.info('Volume: %s', str(volume))
 
             if domoticzlogin:
